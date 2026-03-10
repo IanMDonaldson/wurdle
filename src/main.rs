@@ -1,72 +1,120 @@
-#![warn(clippy::all, rust_2018_idioms)]
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
+use dioxus::document::Style;
+use dioxus::prelude::*;
+use rand::Rng;
+use std::fs::{File, read_to_string};
+use wurdle::utils::*;
+use wurdle::keyboard::Keyboard;
 
-// When compiling natively:
-#[cfg(not(target_arch = "wasm32"))]
-fn main() -> eframe::Result {
-    env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
+const FAVICON: Asset = asset!("/assets/favicon.ico");
+const MAIN_CSS: Asset = asset!("/assets/main.css");
+const HEADER_SVG: Asset = asset!("/assets/header.svg");
+const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
-    let native_options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            .with_inner_size([400.0, 300.0])
-            .with_min_inner_size([300.0, 220.0])
-            .with_icon(
-                // NOTE: Adding an icon is optional
-                eframe::icon_data::from_png_bytes(&include_bytes!("../assets/icon-256.png")[..])
-                    .expect("Failed to load icon"),
-            ),
-        ..Default::default()
-    };
-    eframe::run_native(
-        "eframe template",
-        native_options,
-        Box::new(|cc| Ok(Box::new(wurdle::TemplateApp::new(cc)))),
-    )
+
+fn main() {
+    dioxus::launch(App);
 }
 
-// When compiling to web using trunk:
-#[cfg(target_arch = "wasm32")]
-fn main() {
-    use eframe::wasm_bindgen::JsCast as _;
+#[component]
+fn App() -> Element {
+    let mut won = false;
+    let mut guessed_words: Vec<String> = Vec::new();
+    // let mut curr_word: String = String::new();
+    let mut curr_letter: u8 = 0;
+    let mut max_words: usize = 6;
+    let mut wurd_length: usize = 5;
+    let winning_word = get_winning_word();
+    println!("here's the winning word {}", winning_word);
+    // let check_answer: FnMut(&String) = |answer: &String| {
+    //     println!("sssss");
+    //     if answer.len() != wurd_length {}
+    //     /*  if answerchar = winchar -> letter = green
+    //         else {
+    //             if winword.contains(answerchar) -> letter = yellow
+    //             else -> letter = black
+    //     */
+    // };
 
-    // Redirect `log` message to `console.log` and friends:
-    eframe::WebLogger::init(log::LevelFilter::Debug).ok();
+    use_context_provider(|| WinWord(winning_word));
+    use_context_provider(|| CurrWord(String::new()));
+    use_context_provider(|| GuessedWords(Vec::new()));
+    use_context_provider(|| WordLen(5));
+    rsx! {
+        document::Stylesheet { href: MAIN_CSS }
+        AttemptsView { max_words,}
+        Keyboard {}
+        // WordAttempts { max_words, curr_word }
+        // Keyboard {curr_word}
+    }
+}
 
-    let web_options = eframe::WebOptions::default();
-
-    wasm_bindgen_futures::spawn_local(async {
-        let document = web_sys::window()
-            .expect("No window")
-            .document()
-            .expect("No document");
-
-        let canvas = document
-            .get_element_by_id("the_canvas_id")
-            .expect("Failed to find the_canvas_id")
-            .dyn_into::<web_sys::HtmlCanvasElement>()
-            .expect("the_canvas_id was not a HtmlCanvasElement");
-
-        let start_result = eframe::WebRunner::new()
-            .start(
-                canvas,
-                web_options,
-                Box::new(|cc| Ok(Box::new(eframe_template::TemplateApp::new(cc)))),
-            )
-            .await;
-
-        // Remove the loading text and spinner:
-        if let Some(loading_text) = document.get_element_by_id("loading_text") {
-            match start_result {
-                Ok(_) => {
-                    loading_text.remove();
-                }
-                Err(e) => {
-                    loading_text.set_inner_html(
-                        "<p> The app has crashed. See the developer console for details. </p>",
-                    );
-                    panic!("Failed to start eframe: {e:?}");
+#[component]
+fn AttemptsView(max_words: usize,) -> Element {
+    let guessed_words = use_context::<GuessedWords>().0;
+    rsx! {
+        for x in (0..max_words) {
+            div {
+                display: "flex",
+                justify_content: "center",
+                font_size: "24px",
+                if let Some(s) = guessed_words.get(x) {
+                    AttemptRow { word: s.to_owned() }
+                } else {
+                    AttemptRow { word: Vec::new()}
                 }
             }
         }
-    });
+    }
 }
+
+#[component]
+fn AttemptRow(word: Vec<LetterState>) -> Element {
+    let wurd_len = use_context::<WordLen>();
+    rsx! {
+        if word.len() == 0 {
+            for x in (0..wurd_len.0) {
+                 div {
+                    // class: "default_letter",
+                    background_color: LetterColor::Incorrect.as_color(),
+                    display: "block",
+                    border_style: "solid",
+                    width: "30px",
+                    height: "50px",
+                    font_size: "48px",
+                    color: "white",
+                    border_radius: "5px",
+                    padding: "0.2% 3%",
+                    margin: "5px 5px",
+                    ""
+                }
+            }
+        } else {
+            for x in (0..wurd_len.0) {
+                div {
+                    // class: "default_letter",
+                    background_color: "word.get(x).unwrap().color.as_color()",
+                    display: "block",
+                    border_style: "solid",
+                    width: "30px",
+                    height: "50px",
+                    font_size: "48px",
+                    color: "white",
+                    border_radius: "5px",
+                    padding: "0.2% 3%",
+                    margin: "5px 5px",
+                    "{word.get(x).unwrap().value}"
+                }
+            }
+        }
+    }
+
+}
+
+// #[component]
+// fn Letter(letter_state: LetterState, letter: char) -> Element {
+//     rsx! {
+//
+//     }
+// }
+
+

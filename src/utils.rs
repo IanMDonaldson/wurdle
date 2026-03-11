@@ -3,6 +3,7 @@ use std::fmt::Formatter;
 use std::fs::read_to_string;
 use std::io::Read;
 use dioxus::hooks::use_context;
+use dioxus::prelude::*;
 
 pub fn get_winning_word() -> String {
     let wordle_list = read_to_string("wordle-list").unwrap();
@@ -12,8 +13,9 @@ pub fn get_winning_word() -> String {
 }
 
 pub fn handle_key(letter: String, /*answer: String, winning_word: String*/) {
-    let guessed_words = use_context::<GuessedWords>().0;
+    let mut guessed_words = use_context::<GuessedWords>().0;
     let mut curr_word = use_context::<CurrWord>().0;
+    let mut curr_row = use_context::<CurrRow>().0;
     let win_word = use_context::<WinWord>().0;
     let winchars: Vec<char> = win_word.chars().collect();
     // either done or prematurely hit enter
@@ -25,7 +27,7 @@ pub fn handle_key(letter: String, /*answer: String, winning_word: String*/) {
             //now actually gen a vec<LetterState> to push to guessed words
             // todo refactor later
             let mut new_guess: Vec<LetterState> = Vec::new();
-            for (index , cur_letter) in curr_word.chars().enumerate() {
+            for (index , cur_letter) in curr_word().chars().enumerate() {
                 if *winchars.get(index).unwrap() == cur_letter {
                     //correct!
                     new_guess.push(LetterState {
@@ -45,6 +47,8 @@ pub fn handle_key(letter: String, /*answer: String, winning_word: String*/) {
                     })
                 }
             }
+            guessed_words.push(new_guess);
+            curr_row += 1;
         }
     } else if letter.eq("⌫") {
         //just remove a letter from currword
@@ -53,16 +57,20 @@ pub fn handle_key(letter: String, /*answer: String, winning_word: String*/) {
             None => println!("backspace didn't remove a letter because empty")
         }
     } else if curr_word.len() < win_word.len() {
+        println!("key pressed");
         // Now add the letter to currword
         curr_word.push(letter.chars().last().unwrap());
     }
 }
 
 #[derive(Clone, Default)]
-pub struct GuessedWords(pub Vec<Vec<LetterState>>);
+pub struct GuessedWords(pub Signal<Vec<Vec<LetterState>>>);
 
 #[derive(Clone)]
-pub struct CurrWord(pub String);
+pub struct CurrWord(pub Signal<String>);
+
+#[derive(Clone)]
+pub struct CurrRow(pub usize);
 
 #[derive(Clone)]
 pub struct WinWord(pub String);

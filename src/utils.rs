@@ -1,9 +1,8 @@
-use std::fmt;
-use std::fmt::Formatter;
+use crate::context::Row;
 use std::fs::read_to_string;
-use std::io::Read;
 use dioxus::hooks::use_context;
 use dioxus::prelude::*;
+use crate::context::{GameContext, LetterColor, LetterState, Operation};
 
 pub fn get_winning_word() -> String {
     let wordle_list = read_to_string("wordle-list").unwrap();
@@ -11,101 +10,89 @@ pub fn get_winning_word() -> String {
     let winningword = winvec.get(rand::random_range(0..2307)).unwrap().to_string();
     winningword
 }
+pub fn prepopulate_row(wordlen: usize) -> Vec<LetterState> {
+    let mut letters: Vec<LetterState> = Vec::with_capacity(wordlen);
+    for letter in 0..wordlen {
+        letters.push(LetterState{
+            value: Option::None,
+            color: LetterColor::Incorrect,
+        })
+    }
+    letters
+}
+pub fn prepopulate_table(max_words: usize, wordlen: usize) -> Vec<Row> {
+    let mut table: Vec<Row> = Vec::with_capacity(max_words);
+    for word in 0..max_words {
+        table.push(Row::new(wordlen));
+    }
+    table
+}
 
-pub fn handle_key(letter: String, /*answer: String, winning_word: String*/) {
-    let mut guessed_words = use_context::<GuessedWords>().0;
-    let mut curr_word = use_context::<CurrWord>().0;
-    let mut curr_row = use_context::<CurrRow>().0;
-    let win_word = use_context::<WinWord>().0;
-    let winchars: Vec<char> = win_word.chars().collect();
+pub fn handle_key(letter: String) {
+    //what's the point of global state if I can't fucking change it?? Jesus
+    let mut gamecx = use_context::<GameContext>();
+    let  table = gamecx.table.read().cloned();
+    let  cur_row_index = gamecx.cur_row.read().cloned();
+    let cur_letter_index = gamecx.cur_letter.read().cloned();
+    let  win_word = gamecx.winword.read().cloned();
+    let  winchars: Vec<char> = win_word.chars().collect();
     // either done or prematurely hit enter
+    // dont generate new vec, it's backed by an already pregenerated Vec<LetterState>
+    let  row = table.get(cur_row_index).unwrap().letters.read().cloned();
     if letter.eq("⏎") {
-        if curr_word.len() != win_word.len() {
+        if row.len() != win_word.len() {
             println!("Length not satisfied..");
             return
         } else {
-            //now actually gen a vec<LetterState> to push to guessed words
-            // todo refactor later
-            let mut new_guess: Vec<LetterState> = Vec::new();
-            for (index , cur_letter) in curr_word().chars().enumerate() {
-                if *winchars.get(index).unwrap() == cur_letter {
-                    //correct!
-                    new_guess.push(LetterState {
-                        value: cur_letter.to_string(),
-                        color: LetterColor::Correct,
-                    });
+            // so just iterate over, changing the colors
+            //should never panic, it's always gonna be populated
+            for letter_index in 0..=row.len() {
+                let cur_letterstate = *row.get(letter_index).unwrap();
+                let cur_letter = cur_letterstate.value.unwrap();
+
+                if *winchars.get(letter_index).unwrap() == cur_letter {
+                    gamecx.change_letterstate(
+                        cur_row_index, cur_letter_index,
+                        LetterState{
+                            value: letter.chars().last(),
+                            color: LetterColor::Correct,
+                        });
                 } else if win_word.contains(cur_letter) {
-                    //bad spot
-                    new_guess.push(LetterState {
-                        value: cur_letter.to_string(),
-                        color: LetterColor::WrongSpot,
-                    })
+                    gamecx.change_letterstate(
+                        cur_row_index, cur_letter_index,
+                        LetterState{
+                            value: letter.chars().last(),
+                            color: LetterColor::WrongSpot,
+                        });
                 } else {
-                    new_guess.push(LetterState {
-                        value: cur_letter.to_string(),
-                        color: LetterColor::Incorrect,
-                    })
+                    //it already had LetterColor::Incorrect when it was prepopulated ;)
                 }
             }
-            guessed_words.push(new_guess);
-            curr_row += 1;
+            gamecx.inc_dec_curr_row(Operation::Increment);
         }
     } else if letter.eq("⌫") {
-        //just remove a letter from currword
-        match curr_word.pop() {
-            Some(ch) => println!("backspace removed letter"),
-            None => println!("backspace didn't remove a letter because empty")
+        //just remove a letter from row
+        // actually no! needs to stay prepopulated since it's tied to view state..
+        match cur_letter_index {
+            0 => println!("backspace didn't remove a letter because it's empty"),
+            _ => {
+                println!("backspace removed {}", row.get(cur_letter_index).unwrap());
+                gamecx.change_letterstate(
+                    cur_row_index, cur_letter_index -1, LetterState::default()
+                );
+                gamecx.inc_dec_curr_letter(Operation::Decrement);
+            }
         }
-    } else if curr_word.len() < win_word.len() {
-        println!("key pressed");
-        // Now add the letter to currword
-        curr_word.push(letter.chars().last().unwrap());
+    } else if cur_letter_index < win_word.len() {
+        println!("the {} key was pressed", letter);
+        gamecx.change_letterstate(
+            cur_row_index, cur_letter_index,
+            LetterState::new(letter.chars().last().unwrap(), LetterColor::Incorrect)
+        );
+        gamecx.inc_dec_curr_letter(Operation::Increment);
     }
 }
 
-#[derive(Clone, Default)]
-pub struct GuessedWords(pub Signal<Vec<Vec<LetterState>>>);
 
-#[derive(Clone)]
-pub struct CurrWord(pub Signal<String>);
 
-#[derive(Clone)]
-pub struct CurrRow(pub usize);
 
-#[derive(Clone)]
-pub struct WinWord(pub String);
-
-#[derive(Clone)]
-pub struct WordLen(pub usize);
-
-#[derive(Clone, PartialEq)]
-pub struct LetterState {
-    pub value: String,
-    pub color: LetterColor,
-}
-
-#[derive(Clone, Copy, PartialEq)]
-pub enum LetterColor {
-    Incorrect,
-    WrongSpot,
-    Correct,
-}
-impl LetterColor {
-    pub fn as_color(&self) -> &str {
-        match self {
-            LetterColor::Incorrect => "#434742",
-            LetterColor::WrongSpot => "#848484",
-            LetterColor::Correct => "#a800a8",
-        }
-    }
-}
-impl fmt::Display for LetterState {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.value)
-    }
-}
-
-// #[derive(Props, Clone, PartialEq)]
-// pub struct WordOption {
-//     word: Option<String>,
-// }

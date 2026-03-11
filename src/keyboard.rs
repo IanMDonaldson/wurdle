@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use crate::utils::{handle_key, CurrWord, WinWord};
+use crate::utils::{handle_key};
 
 #[component]
 pub fn Keyboard(/*curr_word: Signal<CurrWord>*/) -> Element {

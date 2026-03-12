@@ -21,8 +21,6 @@ fn App() -> Element {
     let mut won = false;
     let max_words: usize = 6;
     let wordlen: usize = 5;
-    let winning_word = get_winning_word();
-    println!("here's the winning word {}", winning_word);
 
     //prepopulate table :|
 
@@ -47,7 +45,7 @@ fn TableView() -> Element {
     let max_words = gamecx.max_words;
     let wordlen = gamecx.wordlen;
     let table = gamecx.table.read();
-
+    // let x = table.get(1).unwrap().letters.get(1).unwrap().color.read().as_color();
     rsx! {
         Stylesheet { href: MAIN_CSS }
         for row_index in 0..max_words {
@@ -55,9 +53,9 @@ fn TableView() -> Element {
                 class: "row",
                 for letter_index in 0..wordlen {
                     div {
-                        background_color: "{table.get(row_index).unwrap().letters.get(letter_index).unwrap().color.as_color()}",
+                        background_color: "{table.get(row_index).unwrap().letters.get(letter_index).unwrap().color.read().as_color()}",
                         class: "letter",
-                        "{table.get(1).unwrap().letters.get(2).unwrap().value.unwrap_or(' ')}"
+                        "{table.get(row_index).unwrap().letters.get(letter_index).unwrap().value.read().unwrap_or(' ')}"
                     }
                 }
                 ""

@@ -1,6 +1,6 @@
 use std::fmt;
 use std::fmt::Formatter;
-use dioxus::prelude::{ReadableVecExt, Signal, WritableVecExt};
+use dioxus::prelude::{ReadableExt, ReadableOptionExt, ReadableVecExt, Signal, WritableExt, WritableVecExt};
 use crate::utils::{get_winning_word, prepopulate_row, prepopulate_table};
 
 
@@ -14,6 +14,11 @@ impl Row {
             letters: Signal::new(prepopulate_row(wordlen))
         }
     }
+    pub fn get_as_str(&self) -> String {
+        self.letters.iter().map(|x|
+            x.value.read().unwrap()
+        ).collect::<String>()
+    }
 }
 #[derive(Clone, Default, PartialEq)]
 pub struct GameContext {
@@ -26,11 +31,13 @@ pub struct GameContext {
 }
 impl GameContext {
     pub fn new(max_words: usize, wordlen: usize) -> GameContext {
+        let winning_word = get_winning_word();
+        println!("This is the winning word: {}", winning_word);
         GameContext {
             table: Signal::new(prepopulate_table(max_words, wordlen)),
             cur_row: Signal::new(0),
             cur_letter: Signal::new(0),
-            winword: Signal::new(get_winning_word()),
+            winword: Signal::new(winning_word),
             max_words,
             wordlen
 
@@ -38,12 +45,17 @@ impl GameContext {
     }
 
     pub fn change_letterstate(&mut self, row_index: usize,
-      letter_index: usize, letter_state: LetterState
+      letter_index: usize, letter: char, color: LetterColor
     ) {
-        let mut row = self.table.get_mut(row_index).unwrap();
-        let mut letter = row.letters.get_mut(letter_index).unwrap();
-        letter.color = letter_state.color;
-        letter.value = letter_state.value;
+        // What the hell? can't do let row.. let letterstate...have to do it in one big line
+        self.table.get_mut(row_index).unwrap().letters.get_mut(letter_index).unwrap().color.set(color);
+        self.table.get_mut(row_index).unwrap().letters.get_mut(letter_index).unwrap().value.set(Some(letter));
+
+    }
+    pub fn change_letter_color(&mut self, row_index: usize,
+        letter_index: usize, color: LetterColor
+    ) {
+        self.table.get_mut(row_index).unwrap().letters.get_mut(letter_index).unwrap().color.set(color);
     }
 
     pub fn inc_dec_curr_row(&mut self, operation: Operation) {
@@ -59,6 +71,9 @@ impl GameContext {
             Operation::Decrement => self.cur_letter -= 1,
         }
     }
+    pub fn zero_curr_letter(&mut self) {
+        self.cur_letter.set(0);
+    }
 }
 pub enum Operation {
     Decrement,
@@ -70,21 +85,25 @@ pub enum RowOrLetter {
 }
 #[derive(Clone, Copy, PartialEq)]
 pub struct LetterState {
-    pub value: Option<char>,
-    pub color: LetterColor,
+    pub value: Signal<Option<char>>,
+    pub color: Signal<LetterColor>,
+    // pub value: Option<char>,
+    // pub color: LetterColor,
 }
 
 impl LetterState {
     pub fn new(value: char, color: LetterColor) -> LetterState {
         LetterState {
-            value: Option::Some(value),
-            color: color,
+            value: Signal::new(Some(value)),
+            color: Signal::new(color),
+            // value: Some(value),
+            // color: color,
         }
     }
     pub fn default() -> LetterState {
         LetterState {
-            value: Option::None,
-            color: LetterColor::Incorrect,
+            value: Signal::new(None),
+            color: Signal::new(LetterColor::Incorrect),
         }
     }
 }

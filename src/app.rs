@@ -1,4 +1,3 @@
-
 pub struct Wurdle {
     attempts: Vec<Wurd>,
     curr_try: u8,
@@ -8,10 +7,9 @@ pub struct Wurdle {
 struct Wurd {
     letters: Vec<LetterBox>,
     length: u8,
-
 }
 
-#[derive( Clone)]
+#[derive(Clone)]
 struct LetterBox {
     value: String,
     state: LetterState,
@@ -24,18 +22,16 @@ enum LetterState {
 }
 
 impl Wurdle {
-
     pub fn new() -> Wurdle {
-        let (curr_try, max_tries, wurd_length) = (0,6,5);
+        let (curr_try, max_tries, wurd_length) = (0, 6, 5);
         let mut attempts: Vec<Wurd> = Vec::new();
         let mut letters: Vec<LetterBox> = Vec::new();
 
-
         for x in (0..wurd_length) {
-            letters.push(LetterBox{
+            letters.push(LetterBox {
                 value: "A".to_string(),
-                state: LetterState::Incorrect});
-
+                state: LetterState::Incorrect,
+            });
         }
         for x in (0..max_tries) {
             attempts.push(Wurd {

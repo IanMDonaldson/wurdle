@@ -1,33 +1,37 @@
+use crate::utils::{get_winning_word, prepopulate_row, prepopulate_table, reset_table};
+use dioxus::prelude::{ReadableExt, ReadableVecExt, Signal, WritableExt, WritableVecExt};
 use std::fmt;
 use std::fmt::Formatter;
-use dioxus::prelude::{ReadableExt, ReadableOptionExt, ReadableVecExt, Signal, WritableExt, WritableVecExt};
-use crate::utils::{get_winning_word, prepopulate_row, prepopulate_table};
-
+extern crate phf;
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct Row {
-    pub letters: Signal<Vec<LetterState>>
+    pub letters: Signal<Vec<LetterState>>,
 }
 impl Row {
     pub fn new(wordlen: usize) -> Row {
         Row {
-            letters: Signal::new(prepopulate_row(wordlen))
+            letters: Signal::new(prepopulate_row(wordlen)),
         }
     }
     pub fn get_as_str(&self) -> String {
-        self.letters.iter().map(|x|
-            x.value.read().unwrap()
-        ).collect::<String>()
+        self.letters
+            .iter()
+            .map(|x| x.value.read().unwrap())
+            .collect::<String>()
     }
 }
 #[derive(Clone, Default, PartialEq)]
 pub struct GameContext {
-    pub table:  Signal<Vec<Row>>,
+    pub table: Signal<Vec<Row>>,
     pub cur_row: Signal<usize>,
     pub cur_letter: Signal<usize>,
     pub winword: Signal<String>,
     pub max_words: usize,
     pub wordlen: usize,
+    pub won: Signal<WonState>,
+    pub show_popup: Signal<bool>,
+    pub popup_message: Signal<String>,
 }
 impl GameContext {
     pub fn new(max_words: usize, wordlen: usize) -> GameContext {
@@ -39,23 +43,77 @@ impl GameContext {
             cur_letter: Signal::new(0),
             winword: Signal::new(winning_word),
             max_words,
-            wordlen
-
+            wordlen,
+            won: Signal::new(WonState::NA),
+            show_popup: Signal::new(false),
+            popup_message: Signal::new(String::new()),
         }
     }
 
-    pub fn change_letterstate(&mut self, row_index: usize,
-      letter_index: usize, letter: char, color: LetterColor
+    pub fn reset(&mut self) {
+        reset_table(6, 5);
+        self.cur_row.set(0);
+        self.cur_letter.set(0);
+        self.winword.set(get_winning_word());
+        self.max_words = 6;
+        self.wordlen = 5;
+        self.won.set(WonState::NA);
+        self.show_popup.set(false);
+        self.popup_message.set(String::new());
+    }
+
+    pub fn change_letterstate(
+        &mut self,
+        row_index: usize,
+        letter_index: usize,
+        letter: char,
+        color: LetterColor,
     ) {
         // What the hell? can't do let row.. let letterstate...have to do it in one big line
-        self.table.get_mut(row_index).unwrap().letters.get_mut(letter_index).unwrap().color.set(color);
-        self.table.get_mut(row_index).unwrap().letters.get_mut(letter_index).unwrap().value.set(Some(letter));
-
+        // actually no! borrow above
+        self.table
+            .get_mut(row_index)
+            .unwrap()
+            .letters
+            .get_mut(letter_index)
+            .unwrap()
+            .color
+            .set(color);
+        self.table
+            .get_mut(row_index)
+            .unwrap()
+            .letters
+            .get_mut(letter_index)
+            .unwrap()
+            .value
+            .set(Some(letter));
     }
-    pub fn change_letter_color(&mut self, row_index: usize,
-        letter_index: usize, color: LetterColor
+
+    pub fn change_letter_val(&mut self, row_index: usize, letter_index: usize, value: char) {
+        self.table
+            .get_mut(row_index)
+            .unwrap()
+            .letters
+            .get_mut(letter_index)
+            .unwrap()
+            .value
+            .set(Some(value));
+    }
+
+    pub fn change_letter_color(
+        &mut self,
+        row_index: usize,
+        letter_index: usize,
+        color: LetterColor,
     ) {
-        self.table.get_mut(row_index).unwrap().letters.get_mut(letter_index).unwrap().color.set(color);
+        self.table
+            .get_mut(row_index)
+            .unwrap()
+            .letters
+            .get_mut(letter_index)
+            .unwrap()
+            .color
+            .set(color);
     }
 
     pub fn inc_dec_curr_row(&mut self, operation: Operation) {
@@ -82,6 +140,29 @@ pub enum Operation {
 pub enum RowOrLetter {
     Row,
     Letter,
+}
+
+#[derive(Default, PartialEq, Clone)]
+pub enum WonState {
+    Won,
+    Lost,
+    #[default]
+    NA,
+}
+impl WonState {
+    pub fn as_message(&self) -> String {
+        match self {
+            WonState::Won => "You Win!".to_string(),
+            WonState::Lost => "You Lost!".to_string(),
+            WonState::NA => "Not a valid word".to_string(),
+        }
+    }
+    pub fn as_popup_action_message(&self) -> String {
+        match self {
+            WonState::NA => "Close".to_string(),
+            _ => "New Game".to_string(),
+        }
+    }
 }
 #[derive(Clone, Copy, PartialEq)]
 pub struct LetterState {

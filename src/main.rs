@@ -1,16 +1,10 @@
-use dioxus::document::Style;
 use dioxus::prelude::*;
-use rand::Rng;
 use std::fs::{File, read_to_string};
 use wurdle::context::GameContext;
 use wurdle::keyboard::Keyboard;
-use wurdle::utils::*;
+use wurdle::popup::Popup;
 
-const FAVICON: Asset = asset!("/assets/favicon.ico");
 const MAIN_CSS: Asset = asset!("/assets/main.css");
-const HEADER_SVG: Asset = asset!("/assets/header.svg");
-const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
-
 
 fn main() {
     dioxus::launch(App);
@@ -18,7 +12,6 @@ fn main() {
 
 #[component]
 fn App() -> Element {
-    let mut won = false;
     let max_words: usize = 6;
     let wordlen: usize = 5;
 
@@ -32,8 +25,11 @@ fn App() -> Element {
     let cur_letter = use_signal(|| 0);*/
 
     use_context_provider(|| GameContext::new(max_words, wordlen));
+    let gamecx = use_context::<GameContext>();
+
     rsx! {
         Stylesheet { href: MAIN_CSS }
+
         TableView {}
         Keyboard {}
     }
@@ -45,9 +41,11 @@ fn TableView() -> Element {
     let max_words = gamecx.max_words;
     let wordlen = gamecx.wordlen;
     let table = gamecx.table.read();
-    // let x = table.get(1).unwrap().letters.get(1).unwrap().color.read().as_color();
     rsx! {
         Stylesheet { href: MAIN_CSS }
+        if *gamecx.show_popup.read() {
+            Popup {}
+        }
         for row_index in 0..max_words {
             div {
                 class: "row",
@@ -63,4 +61,3 @@ fn TableView() -> Element {
         }
     }
 }
-

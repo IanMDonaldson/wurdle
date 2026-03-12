@@ -9,6 +9,7 @@ rust-version = "1.88"
 [dependencies]
 dioxus = { version = "0.7.1", features = [] }
 rand = "0.10.0"
+phf = { version = "0.13.1", features = ["macros"] }
 
 [features]
 default = ["desktop"]

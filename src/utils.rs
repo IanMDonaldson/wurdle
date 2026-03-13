@@ -1,3 +1,4 @@
+use std::ops::Index;
 use crate::context::{GameContext, LetterColor, LetterState, Operation};
 use crate::context::{Row, WonState};
 use crate::wordlist::KEYWORDS;
@@ -75,15 +76,26 @@ pub fn handle_key(letter: String) {
             show_popup.set(true);
         } else {
             // so just iterate over, changing the colors
-            //should never panic, it's always gonna be populated
-            for letter_index in 0..row.len() {
-                let cur_letterstate = *row.get(letter_index).unwrap();
+            //should never panic on access, it's always gonna be populated
+            let mut winword_incorrect_checker = win_word.clone();
+            for i in 0..row.len() {
+                let cur_letterstate = *row.get(i).unwrap();
                 let cur_letter = cur_letterstate.value.unwrap();
 
-                if *winchars.get(letter_index).unwrap() == cur_letter {
-                    gamecx.change_letter_color(cur_row_index, letter_index, LetterColor::Correct);
-                } else if win_word.contains(cur_letter) {
-                    gamecx.change_letter_color(cur_row_index, letter_index, LetterColor::WrongSpot);
+                if *winchars.get(i).unwrap() == cur_letter {
+                    gamecx.change_letter_color(cur_row_index, i, LetterColor::Correct);
+                    winword_incorrect_checker.remove(
+                        winword_incorrect_checker.find(cur_letter).unwrap()
+                    );
+                } else if winword_incorrect_checker.contains(cur_letter) {
+                    gamecx.change_letter_color(cur_row_index, i, LetterColor::WrongSpot);
+                    /* If you don't remove the letter in incorrect spot, it'll make all occurences
+                    of the incorrect letter yellow
+                    - like if word was "eight" and you typed in "EMCEE" , the last two E's would
+                    be yellow */
+                    winword_incorrect_checker.remove(
+                        winword_incorrect_checker.find(cur_letter).unwrap()
+                    );
                 } else {
                     //it already had LetterColor::Incorrect when it was prepopulated ;)
                 }

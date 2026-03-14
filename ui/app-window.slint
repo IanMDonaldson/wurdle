@@ -1,18 +1,83 @@
-import { Button, VerticalBox } from "std-widgets.slint";
 
-export component AppWindow inherits Window {
-    in-out property <int> counter: 42;
-    callback request-increase-value();
-    VerticalBox {
-        Text {
-            text: "Counter: \{root.counter}";
-        }
+struct TileData {
+    letter: string,
+    tile-color: brush,
+}
 
-        Button {
-            text: "Increase value";
-            clicked => {
-                root.request-increase-value();
-            }
-        }
+component LetterTile inherits Rectangle {
+	in property <string> letter;
+	in property <brush> tile-color;
+	in property <bool> entered;
+    width: 64px;
+    height: 64px;
+    background: tile-color;
+    border-color: #aaaaaa;
+    border-radius: 5px;
+
+	Text {
+		text: letter;
+		color: Colors.lightgray;
+		font-size: 40pt;
+		horizontal-alignment: center;
+	}
+
+    Rectangle {
+    	background: #444444;
+    	//slide from right to middle
+    	x: entered? parent.width/2 : parent.width;
+    	width: entered ? parent.width/2 : 0px;
+    	height: parent.height;
+    	animate width { duration: 300ms; easing: ease-in; }
+    	animate x { duration: 300ms; easing: ease-in; }
+    	changed width => {
+    		if (self.width == (parent.width/2)) {
+    			self.width = 0px;
+    			self.x = parent.width;
+    		}
+    	}
+	}
+
+    Rectangle {
+    	background: #444444;
+    	x: 0px;  // open_curtain? parent.width/2 : 0px;
+    	// slide from left to middle
+    	width: entered ? parent.width/2 : 0px;
+    	height: parent.height;
+    	animate width { duration: 300ms; easing: ease-in; }
+    	animate x { duration: 300ms; easing: ease-in; }
+    	changed width => {
+    		if (self.width == (parent.width/2)) {
+    			self.width = 0px;
+    		}
+    	}
     }
+}
+
+export component MainWindow inherits Window {
+    width: 450px;
+	height: 750px;
+//	property <int> wordlen: 5;
+//	property <int> max_words: 6;
+	background: #555555;
+	callback check_if_pair_solved();
+    in-out property <int> wordlen;
+    in-out property <int> max_words;
+    in-out property <[TileData]> letter_tiles;
+
+//	in-out property <[TileData]> memory_tiles: [
+//		{ letter: "A", tile-color: Colors.hsv(20, 20, 20, 0.95)},
+//		{ letter: "A", tile-color: Colors.darkgray},
+//		{ letter: "A", tile-color: Colors.darkgray},
+//		{ letter: "A", tile-color: Colors.darkgray},
+//		{ letter: "A", tile-color: Colors.darkgray},
+//	];
+	for tile[i] in letter_tiles : LetterTile {
+		x: mod(i, wordlen) * 72px;
+		y: floor(i / max_words) * 70px;
+		width: 64px;
+		height: 64px;
+		letter: tile.letter;
+		tile-color: tile.tile-color;
+		entered: false;
+	}
 }

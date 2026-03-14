@@ -1,15 +1,24 @@
 [package]
-name = "slint-wordle"
+name = "wurdle"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-slint = "1.14.1"
+slint = { version = "1.14.1", features = ["document-features"] }
 dioxus = "0.7.3"
 phf = { version = "0.13.1", features = ["macros"] }
 rand = "0.9.2"
+wasm-bindgen = "0.2.114"
 
 [build-dependencies]
 slint-build = "1.14.1"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { version = "0.2" }
+getrandom = { version = "0.3.4", features = ["wasm_js"] }
+
+[lib]
+path = "src/main.rs"
+crate-type = ["cdylib"]

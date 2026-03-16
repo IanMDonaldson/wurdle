@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use std::fs::{File, read_to_string};
 use wurdle::context::GameContext;
 use wurdle::keyboard::Keyboard;
 use wurdle::popup::Popup;
@@ -7,7 +6,7 @@ use wurdle::popup::Popup;
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 
 fn main() {
-    dioxus::launch(App);
+    launch(App);
 }
 
 #[component]
@@ -17,15 +16,7 @@ fn App() -> Element {
 
     //prepopulate table :|
 
-    /* apparently not idiomatiic rust according to dioxus :)
-    let table: Signal<Vec<Vec<LetterState>>> = use_signal(||
-        prepopulate_table(max_words, wordlen)
-    );
-    let cur_row: Signal<usize> = use_signal(|| 0);
-    let cur_letter = use_signal(|| 0);*/
-
     use_context_provider(|| GameContext::new(max_words, wordlen));
-    let gamecx = use_context::<GameContext>();
 
     rsx! {
         Stylesheet { href: MAIN_CSS }
@@ -42,7 +33,6 @@ fn TableView() -> Element {
     let wordlen = gamecx.wordlen;
     let table = gamecx.table.read();
     rsx! {
-        Stylesheet { href: MAIN_CSS }
         if *gamecx.show_popup.read() {
             Popup {}
         }

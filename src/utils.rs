@@ -1,4 +1,3 @@
-use std::ops::Index;
 use crate::context::{GameContext, LetterColor, LetterState, Operation};
 use crate::context::{Row, WonState};
 use crate::wordlist::KEYWORDS;
@@ -100,7 +99,7 @@ pub fn handle_key(letter: String) {
                     //it already had LetterColor::Incorrect when it was prepopulated ;)
                 }
             }
-            if cur_row_index == row.len() - 1 {
+            if cur_row_index == row.len() {
                 println!("You lose");
                 message.set("You Lose!".to_string());
                 won.set(WonState::Lost);

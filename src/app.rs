@@ -21,19 +21,25 @@ enum LetterState {
     Correct,
 }
 
+impl Default for Wurdle {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Wurdle {
     pub fn new() -> Wurdle {
         let (curr_try, max_tries, wurd_length) = (0, 6, 5);
         let mut attempts: Vec<Wurd> = Vec::new();
         let mut letters: Vec<LetterBox> = Vec::new();
 
-        for x in (0..wurd_length) {
+        for x in 0..wurd_length {
             letters.push(LetterBox {
                 value: "A".to_string(),
                 state: LetterState::Incorrect,
             });
         }
-        for x in (0..max_tries) {
+        for x in 0..max_tries {
             attempts.push(Wurd {
                 letters: letters.clone(),
                 length: wurd_length,

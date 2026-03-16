@@ -168,8 +168,6 @@ impl WonState {
 pub struct LetterState {
     pub value: Signal<Option<char>>,
     pub color: Signal<LetterColor>,
-    // pub value: Option<char>,
-    // pub color: LetterColor,
 }
 
 impl LetterState {
@@ -177,8 +175,6 @@ impl LetterState {
         LetterState {
             value: Signal::new(Some(value)),
             color: Signal::new(color),
-            // value: Some(value),
-            // color: color,
         }
     }
     pub fn default() -> LetterState {

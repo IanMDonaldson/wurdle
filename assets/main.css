@@ -16,14 +16,14 @@ html, body {
 }
 .letter {
     display: block;
-    border_style: solid;
+    border-style: solid;
     width: 30px;
-    display: flex;
     justify-content: center;
     height: 50px;
-    font_size: 48px;
+    max-width: 50px;
+    /*font-size: 48px;*/
     color: white;
-    border_radius: 5px;
+    border-radius: 5px;
     padding: 0.2% 3%;
     margin: 5px 5px;
 }
